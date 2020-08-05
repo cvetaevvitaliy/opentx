@@ -211,8 +211,10 @@ void processTelemetryFrame(uint8_t module, const uint8_t * frame)
 #if defined(ACCESS_LIB) && !defined(SIMU)
 void processAuthenticationFrame(uint8_t module, const uint8_t * frame)
 {
+#ifndef ACCESS_TX16S
   uint8_t cryptoType = frame[3];
   uint8_t messageDigest[16] = {0};
+#endif
 
   if (frame[0] == 4 && PXX2_AUTH_REFUSED_FLAG == frame[4]) {
     if (!globalData.upgradeModulePopup) {
@@ -221,7 +223,7 @@ void processAuthenticationFrame(uint8_t module, const uint8_t * frame)
     }
     return;
   }
-
+#ifndef ACCESS_TX16S
   if (INTERNAL_MODULE == module && accessCRL(cryptoType, frame+4, messageDigest)) {
     moduleState[module].mode = MODULE_MODE_AUTHENTICATION;
     Pxx2Pulses & pxx2 = intmodulePulsesData.pxx2;
@@ -229,6 +231,7 @@ void processAuthenticationFrame(uint8_t module, const uint8_t * frame)
     intmoduleSendBuffer(pxx2.getData(), pxx2.getSize());
     // we remain in AUTHENTICATION mode to avoid a CHANNELS frame is sent at the end of the mixing process
   }
+#endif
 
   if (!globalData.upgradeModulePopup) {
     if (globalData.authenticationCount >= 2) {
