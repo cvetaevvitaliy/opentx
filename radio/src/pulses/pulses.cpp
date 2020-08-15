@@ -299,13 +299,13 @@ static void enablePulsesInternalModule(uint8_t protocol)
       break;
 #endif
 
-#if defined(PXX1) && defined(INTMODULE_USART)
+#if defined(PXX1) && defined(INTMODULE_USART) && !defined(ACCESS_TX16S)
     case PROTOCOL_CHANNELS_PXX1_SERIAL:
       intmodulePxx1SerialStart();
       break;
 #endif
 
-#if defined(PXX2)
+#if defined(PXX2) && !defined(ACCESS_TX16S)
     case PROTOCOL_CHANNELS_PXX2_HIGHSPEED:
       intmoduleSerialStart(PXX2_HIGHSPEED_BAUDRATE, true, USART_Parity_No, USART_StopBits_1, USART_WordLength_8b);
       resetAccessAuthenticationCount();
@@ -341,7 +341,7 @@ bool setupPulsesInternalModule(uint8_t protocol)
       return true;
 #endif
 
-#if defined(PXX1) && defined(INTMODULE_USART)
+#if defined(PXX1) && defined(INTMODULE_USART) && !defined(ACCESS_TX16S)
     case PROTOCOL_CHANNELS_PXX1_SERIAL:
       intmodulePulsesData.pxx_uart.setupFrame(INTERNAL_MODULE);
 #if defined(INTMODULE_HEARTBEAT)
@@ -352,7 +352,7 @@ bool setupPulsesInternalModule(uint8_t protocol)
       return true;
 #endif
 
-#if defined(PXX2)
+#if defined(PXX2) && !defined(ACCESS_TX16S)
     case PROTOCOL_CHANNELS_PXX2_HIGHSPEED:
     {
       bool result = intmodulePulsesData.pxx2.setupFrame(INTERNAL_MODULE);

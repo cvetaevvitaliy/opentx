@@ -198,13 +198,13 @@ void intmoduleSendBuffer(const uint8_t * data, uint8_t size)
 void intmoduleSendNextFrame()
 {
   switch(moduleState[INTERNAL_MODULE].protocol) {
-#if defined(PXX2)
+#if defined(PXX2) && !defined(ACCESS_TX16S)
     case PROTOCOL_CHANNELS_PXX2_HIGHSPEED:
       intmoduleSendBuffer(intmodulePulsesData.pxx2.getData(), intmodulePulsesData.pxx2.getSize());
       break;
 #endif
 
-#if defined(PXX1)
+#if defined(PXX1) && !defined(ACCESS_TX16S)
     case PROTOCOL_CHANNELS_PXX1_SERIAL:
       intmoduleSendBuffer(intmodulePulsesData.pxx_uart.getData(), intmodulePulsesData.pxx_uart.getSize());
       break;
