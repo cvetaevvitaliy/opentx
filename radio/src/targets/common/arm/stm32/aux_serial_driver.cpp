@@ -332,9 +332,11 @@ void aux2SerialInit(unsigned int mode, unsigned int protocol)
       AUX2_SERIAL_POWER_ON();
       break;
 
+#if defined(DEBUG) || defined(CLI)
     case UART_MODE_LUA:
       aux2SerialSetup(DEBUG_BAUDRATE, false);
       AUX2_SERIAL_POWER_ON();
+#endif
   }
 }
 

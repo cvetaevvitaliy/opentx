@@ -42,6 +42,8 @@
 #define DISPLAY_VERSION "-tbs"
 #elif defined(IMRC_RELEASE)
 #define DISPLAY_VERSION "-imrc"
+#elif defined(ACCESS_TX16S)
+#define DISPLAY_VERSION "-Radiomaster TX16S"
 #else
 #define DISPLAY_VERSION
 #endif

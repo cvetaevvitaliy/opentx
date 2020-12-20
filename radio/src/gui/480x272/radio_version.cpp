@@ -60,10 +60,11 @@ bool menuRadioModulesVersion(event_t event)
   }
 
   if (event == EVT_ENTRY || get_tmr10ms() >= reusableBuffer.hardwareAndSettings.updateTime) {
+#if !defined(ACCESS_TX16S)
     if (isModulePXX2(INTERNAL_MODULE) && IS_INTERNAL_MODULE_ON()) {
       moduleState[INTERNAL_MODULE].readModuleInformation(&reusableBuffer.hardwareAndSettings.modules[INTERNAL_MODULE], PXX2_HW_INFO_TX_ID, PXX2_MAX_RECEIVERS_PER_MODULE - 1);
     }
-
+#endif
     if (isModulePXX2(EXTERNAL_MODULE) && IS_EXTERNAL_MODULE_ON()) {
       moduleState[EXTERNAL_MODULE].readModuleInformation(&reusableBuffer.hardwareAndSettings.modules[EXTERNAL_MODULE], PXX2_HW_INFO_TX_ID, PXX2_MAX_RECEIVERS_PER_MODULE - 1);
     }
@@ -92,12 +93,24 @@ bool menuRadioModulesVersion(event_t event)
           y += FH;
           continue;
         }
+#if !defined(ACCESS_TX16S)
         if (!isModulePXX2(INTERNAL_MODULE)) {
           lcdDrawText(COLUMN2_X, y, STR_NO_INFORMATION);
           y += FH;
           continue;
         }
+#else
+        if (IS_INTERNAL_MODULE_ON()) {
+          char statusText[64];
+          lcdDrawText(COLUMN2_X, y, "Multimodule TX16S");
+          y += FH;
+          getMultiModuleStatus(INTERNAL_MODULE).getStatusString(statusText);
+          lcdDrawText(COLUMN2_X, y, statusText);
+          y += FH;
+          continue;
+        }
       }
+#endif
       else if (module == EXTERNAL_MODULE) {
         if (!IS_EXTERNAL_MODULE_ON()) {
           lcdDrawText(COLUMN2_X, y, STR_OFF);

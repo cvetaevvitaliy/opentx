@@ -390,7 +390,7 @@ bool isAux1ModeAvailable(int mode)
 #if defined(AUX2_SERIAL)
   if (mode == UART_MODE_SBUS_TRAINER)
     return g_eeGeneral.aux2SerialMode != UART_MODE_SBUS_TRAINER;
-#if defined(RADIO_TX16S)
+#if defined(RADIO_TX16S) && !defined(ACCESS_TX16S)
   else
     return (g_model.trainerData.mode != TRAINER_MODE_MASTER_BATTERY_COMPARTMENT || g_eeGeneral.aux2SerialMode == UART_MODE_SBUS_TRAINER);
 #endif
@@ -791,7 +791,7 @@ bool isTrainerModeAvailable(int mode)
   }
 #endif
 
-#if defined(RADIO_TX16S)
+#if defined(RADIO_TX16S) && !defined(ACCESS_TX16S)
   if (mode == TRAINER_MODE_MASTER_BATTERY_COMPARTMENT)
     return (g_eeGeneral.auxSerialMode == UART_MODE_SBUS_TRAINER || g_eeGeneral.aux2SerialMode == UART_MODE_SBUS_TRAINER);
 #elif defined(PCBTARANIS) && !defined(TRAINER_BATTERY_COMPARTMENT)

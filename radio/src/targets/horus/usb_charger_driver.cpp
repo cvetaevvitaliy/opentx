@@ -33,6 +33,12 @@ void usbChargerInit()
 
 bool usbChargerLed()
 {
-  return GPIO_ReadInputDataBit(USB_CHARGER_GPIO, USB_USBDet_GPIO_PIN) == 0 ? 0 : GPIO_ReadInputDataBit(USB_CHARGER_GPIO, USB_CHARGER_GPIO_PIN) == Bit_RESET;
+  if (GPIO_ReadInputDataBit(USB_CHARGER_GPIO, USB_USBDet_GPIO_PIN) == Bit_SET) {
+    ledRed();
+    return Bit_SET;
+  } else {
+    ledGreen();
+    return Bit_RESET;
+  }
 }
 
