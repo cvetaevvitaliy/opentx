@@ -182,6 +182,7 @@ class ModelData {
     unsigned int thrTraceSrc;
     uint64_t switchWarningStates;
     unsigned int switchWarningEnable;
+    unsigned int thrTrimSwitch;
     unsigned int potsWarningMode;
     bool potsWarnEnabled[CPN_MAX_POTS];
     int potsWarnPosition[CPN_MAX_POTS];
@@ -298,6 +299,7 @@ class ModelData {
       int shift;
       int updcnt;
       int maxindex;
+      int occurences;
       RawSourceType srcType;
       RawSwitchType swtchType;
     };
@@ -315,6 +317,7 @@ class ModelData {
     void updateDestCh(MixData * md);
     void updateLimitCurveRef(CurveReference & crv);
     void updateFlightModeFlags(unsigned int & flags);
+    void updateTelemetryRef(int & idx);
     void updateTelemetryRef(unsigned int & idx);
     void updateModuleFailsafes(ModuleData * md);
     inline void updateSourceRef(RawSource & src) { updateTypeIndexRef<RawSource, RawSourceType>(src, updRefInfo.srcType); }
@@ -334,6 +337,8 @@ class ModelData {
       if (value != swtch.toValue())
         value = swtch.toValue();
     }
+    void sortMixes();
+    void updateResetParam(CustomFunctionData * cfd);
 };
 
 #endif // MODELDATA_H

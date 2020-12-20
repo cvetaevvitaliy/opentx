@@ -28,30 +28,29 @@
 
 #include <TimerEdit>
 
-
-/******************************************************/
-
-TelemetryCustomScreen::TelemetryCustomScreen(QWidget *parent, ModelData & model, FrSkyScreenData & screen, GeneralSettings & generalSettings, Firmware * firmware, RawSourceFilterItemModel * srcModel):
+TelemetryCustomScreen::TelemetryCustomScreen(QWidget *parent, ModelData & model, FrSkyScreenData & screen, GeneralSettings & generalSettings, Firmware * firmware, RawItemFilteredModel * rawSourceModel):
   ModelPanel(parent, model, generalSettings, firmware),
   ui(new Ui::TelemetryCustomScreen),
   screen(screen)
 {
   ui->setupUi(this);
+  connect(rawSourceModel, &RawItemFilteredModel::dataAboutToBeUpdated, this, &TelemetryCustomScreen::onModelDataAboutToBeUpdated);
+  connect(rawSourceModel, &RawItemFilteredModel::dataUpdateComplete, this, &TelemetryCustomScreen::onModelDataUpdateComplete);
 
-  for (int l=0; l<4; l++) {
-    for (int c=0; c<firmware->getCapability(TelemetryCustomScreensFieldsPerLine); c++) {
+  for (int l = 0; l < firmware->getCapability(TelemetryCustomScreensLines); l++) {
+    for (int c = 0; c < firmware->getCapability(TelemetryCustomScreensFieldsPerLine); c++) {
       fieldsCB[l][c] = new QComboBox(this);
-      fieldsCB[l][c]->setProperty("index", c + (l<<8));
-      fieldsCB[l][c]->setModel(srcModel);
+      fieldsCB[l][c]->setProperty("index", c + (l << 8));
+      fieldsCB[l][c]->setModel(rawSourceModel);
       ui->screenNumsLayout->addWidget(fieldsCB[l][c], l, c, 1, 1);
       connect(fieldsCB[l][c], SIGNAL(activated(int)), this, SLOT(customFieldChanged(int)));
     }
   }
 
-  for (int l=0; l<4; l++) {
+  for (int l = 0; l < firmware->getCapability(TelemetryCustomScreensBars); l++) {
     barsCB[l] = new QComboBox(this);
     barsCB[l]->setProperty("index", l);
-    barsCB[l]->setModel(srcModel);
+    barsCB[l]->setModel(rawSourceModel);
     connect(barsCB[l], SIGNAL(activated(int)), this, SLOT(barSourceChanged(int)));
     ui->screenBarsLayout->addWidget(barsCB[l], l, 0, 1, 1);
 
@@ -122,18 +121,18 @@ void TelemetryCustomScreen::update()
   ui->screenNums->setVisible(screen.type == TELEMETRY_SCREEN_NUMBERS);
   ui->screenBars->setVisible(screen.type == TELEMETRY_SCREEN_BARS);
 
-  for (int l=0; l<4; l++) {
-    for (int c=0; c<firmware->getCapability(TelemetryCustomScreensFieldsPerLine); c++) {
+  for (int l = 0; l < firmware->getCapability(TelemetryCustomScreensLines); l++) {
+    for (int c = 0; c < firmware->getCapability(TelemetryCustomScreensFieldsPerLine); c++) {
       fieldsCB[l][c]->setCurrentIndex(fieldsCB[l][c]->findData(screen.body.lines[l].source[c].toValue()));
     }
   }
 
-  for (int l=0; l<4; l++) {
+  for (int l = 0; l < firmware->getCapability(TelemetryCustomScreensBars); l++) {
     barsCB[l]->setCurrentIndex(barsCB[l]->findData(screen.body.bars[l].source.toValue()));
   }
 
   if (screen.type == TELEMETRY_SCREEN_BARS) {
-    for (int i=0; i<4; i++) {
+    for (int i = 0; i < firmware->getCapability(TelemetryCustomScreensBars); i++) {
       updateBar(i);
     }
   }
@@ -290,15 +289,27 @@ void TelemetryCustomScreen::barTimeChanged()
   }
 }
 
+void TelemetryCustomScreen::onModelDataAboutToBeUpdated()
+{
+  lock = true;
+}
+
+void TelemetryCustomScreen::onModelDataUpdateComplete()
+{
+  update();
+  lock = false;
+}
+
 /******************************************************/
 
-TelemetrySensorPanel::TelemetrySensorPanel(QWidget *parent, SensorData & sensor, int sensorIndex, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware):
+TelemetrySensorPanel::TelemetrySensorPanel(QWidget *parent, SensorData & sensor, int sensorIndex, int sensorCapability, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware):
   ModelPanel(parent, model, generalSettings, firmware),
   ui(new Ui::TelemetrySensor),
   sensor(sensor),
   lock(false),
   sensorIndex(sensorIndex),
-  selectedIndex(0)
+  selectedIndex(0),
+  sensorCapability(sensorCapability)
 {
   ui->setupUi(this);
   ui->numLabel->setText(tr("TELE%1").arg(sensorIndex + 1));
@@ -307,6 +318,7 @@ TelemetrySensorPanel::TelemetrySensorPanel(QWidget *parent, SensorData & sensor,
   QFontMetrics *f = new QFontMetrics(QFont());
   QSize sz;
   sz = f->size(Qt::TextSingleLine, "TELE00");
+  delete f;
   ui->numLabel->setMinimumWidth(sz.width());
   ui->numLabel->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->numLabel->setToolTip(tr("Popup menu available"));
@@ -326,7 +338,7 @@ TelemetrySensorPanel::TelemetrySensorPanel(QWidget *parent, SensorData & sensor,
   ui->ampsSensor->setField(sensor.amps, this);
   ui->cellsSensor->setField(sensor.source, this);
   ui->cellsIndex->addItem(tr("Lowest"), SensorData::TELEM_CELL_INDEX_LOWEST);
-  for (int i = 1; i <= 6; i++)
+  for (int i = SensorData::TELEM_CELL_INDEX_LOWEST + 1; i < SensorData::TELEM_CELL_INDEX_HIGHEST; i++)
     ui->cellsIndex->addItem(tr("Cell %1").arg(i), i);
   ui->cellsIndex->addItem(tr("Highest"), SensorData::TELEM_CELL_INDEX_HIGHEST);
   ui->cellsIndex->addItem(tr("Delta"), SensorData::TELEM_CELL_INDEX_DELTA);
@@ -475,8 +487,8 @@ void populateTelemetrySourcesComboBox(AutoComboBox * cb, const ModelData * model
 {
   cb->clear();
   if (negative) {
-    for (int i=-CPN_MAX_SENSORS; i<0; ++i) {
-      const SensorData& sensor = model->sensorData[-i-1];
+    for (int i = -CPN_MAX_SENSORS; i < 0; ++i) {
+      const SensorData& sensor = model->sensorData[-i - 1];
       if (sensor.isAvailable()) {
         if (sensor.type == SensorData::TELEM_TYPE_CUSTOM)
           cb->addItem(QString("-%1 (%2)").arg(sensor.label, sensor.getOrigin(model)), i);
@@ -486,7 +498,7 @@ void populateTelemetrySourcesComboBox(AutoComboBox * cb, const ModelData * model
     }
   }
   cb->addItem("---", 0);
-  for (unsigned i=1; i<=CPN_MAX_SENSORS; ++i) {
+  for (unsigned i = 1; i <= CPN_MAX_SENSORS; ++i) {
     const SensorData& sensor = model->sensorData[i-1];
     if (sensor.isAvailable()) {
       if (sensor.type == SensorData::TELEM_TYPE_CUSTOM)
@@ -507,7 +519,6 @@ void TelemetrySensorPanel::on_name_editingFinished()
   if (!lock) {
     strcpy(sensor.label, ui->name->text().toLatin1());
     emit dataModified();
-    emit modified();
   }
 }
 
@@ -537,7 +548,6 @@ void TelemetrySensorPanel::on_formula_currentIndexChanged(int index)
       sensor.unit = SensorData::UNIT_METERS;
     }
     emit dataModified();
-    emit modified();
   }
 }
 
@@ -572,6 +582,11 @@ void TelemetrySensorPanel::on_customContextMenuRequested(QPoint pos)
   contextMenu.addAction(CompanionIcon("paste.png"), tr("Paste"),this,SLOT(cmPaste()))->setEnabled(hasClipboardData());
   contextMenu.addAction(CompanionIcon("clear.png"), tr("Clear"),this,SLOT(cmClear()));
   contextMenu.addSeparator();
+  contextMenu.addAction(CompanionIcon("arrow-right.png"), tr("Insert"),this,SLOT(cmInsert()))->setEnabled(insertAllowed());
+  contextMenu.addAction(CompanionIcon("arrow-left.png"), tr("Delete"),this,SLOT(cmDelete()));
+  contextMenu.addAction(CompanionIcon("moveup.png"), tr("Move Up"),this,SLOT(cmMoveUp()))->setEnabled(moveUpAllowed());
+  contextMenu.addAction(CompanionIcon("movedown.png"), tr("Move Down"),this,SLOT(cmMoveDown()))->setEnabled(moveDownAllowed());
+  contextMenu.addSeparator();
   contextMenu.addAction(CompanionIcon("clear.png"), tr("Clear All"),this,SLOT(cmClearAll()));
 
   contextMenu.exec(globalPos);
@@ -589,6 +604,21 @@ bool TelemetrySensorPanel::hasClipboardData(QByteArray * data) const
   return false;
 }
 
+bool TelemetrySensorPanel::insertAllowed() const
+{
+  return ((selectedIndex < sensorCapability - 1) && (model->sensorData[sensorCapability - 1].isEmpty()));
+}
+
+bool TelemetrySensorPanel::moveDownAllowed() const
+{
+  return selectedIndex < sensorCapability - 1;
+}
+
+bool TelemetrySensorPanel::moveUpAllowed() const
+{
+  return selectedIndex > 0;
+}
+
 void TelemetrySensorPanel::cmCopy()
 {
   QByteArray data;
@@ -600,8 +630,11 @@ void TelemetrySensorPanel::cmCopy()
 
 void TelemetrySensorPanel::cmCut()
 {
+  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Cut Telemetry Sensor. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+    return;
+
   cmCopy();
-  cmClear();
+  cmClear(false);
 }
 
 void TelemetrySensorPanel::cmPaste()
@@ -610,18 +643,19 @@ void TelemetrySensorPanel::cmPaste()
   if (hasClipboardData(&data)) {
     memcpy(&sensor, data.constData(), sizeof(SensorData));
     emit dataModified();
-    emit modified();
   }
 }
 
-void TelemetrySensorPanel::cmClear()
+void TelemetrySensorPanel::cmClear(bool prompt)
 {
-  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Clear Telemetry Sensor. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
-    return;
+  if (prompt) {
+    if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Clear Telemetry Sensor. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+      return;
+  }
 
   sensor.clear();
+  model->updateAllReferences(ModelData::REF_UPD_TYPE_SENSOR, ModelData::REF_UPD_ACT_CLEAR, selectedIndex);
   emit dataModified();
-  emit modified();
 }
 
 void TelemetrySensorPanel::cmClearAll()
@@ -632,13 +666,39 @@ void TelemetrySensorPanel::cmClearAll()
   emit clearAllSensors();
 }
 
+void TelemetrySensorPanel::cmInsert()
+{
+  emit insertSensor(selectedIndex);
+}
+
+void TelemetrySensorPanel::cmDelete()
+{
+  emit deleteSensor(selectedIndex);
+}
+
+void TelemetrySensorPanel::cmMoveUp()
+{
+  emit moveUpSensor(selectedIndex);
+}
+
+void TelemetrySensorPanel::cmMoveDown()
+{
+  emit moveDownSensor(selectedIndex);
+}
+
 /******************************************************/
 
-TelemetryPanel::TelemetryPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware):
+TelemetryPanel::TelemetryPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels):
   ModelPanel(parent, model, generalSettings, firmware),
-  ui(new Ui::Telemetry)
+  ui(new Ui::Telemetry),
+  commonItemModels(commonItemModels)
 {
   ui->setupUi(this);
+  rawSourceFilteredModel = new RawItemFilteredModel(commonItemModels->rawSourceItemModel(), this);
+
+  sensorCapability = firmware->getCapability(Sensors);
+  if (sensorCapability > CPN_MAX_SENSORS) //  TODO should be role of getCapability
+    sensorCapability = CPN_MAX_SENSORS;
 
   if (firmware->getCapability(NoTelemetryProtocol)) {
     model.frsky.usrProto = 1;
@@ -648,13 +708,18 @@ TelemetryPanel::TelemetryPanel(QWidget *parent, ModelData & model, GeneralSettin
   ui->varioCenterSilent->setField(model.frsky.varioCenterSilent, this);
   ui->A1GB->hide();
   ui->A2GB->hide();
-  for (unsigned  i= 0; i < CPN_MAX_SENSORS; ++i) {
-    TelemetrySensorPanel * panel = new TelemetrySensorPanel(this, model.sensorData[i], i, model, generalSettings, firmware);
+
+  for (int i = 0; i < sensorCapability; ++i) {
+    TelemetrySensorPanel * panel = new TelemetrySensorPanel(this, model.sensorData[i], i, sensorCapability, model, generalSettings, firmware);
     ui->sensorsLayout->addWidget(panel);
     sensorPanels[i] = panel;
-    connect(panel, SIGNAL(dataModified()), this, SLOT(update()));
+    connect(panel, SIGNAL(dataModified()), this, SLOT(on_dataModifiedSensor()));
     connect(panel, SIGNAL(modified()), this, SLOT(onModified()));
     connect(panel, SIGNAL(clearAllSensors()), this, SLOT(on_clearAllSensors()));
+    connect(panel, SIGNAL(insertSensor(int)), this, SLOT(on_insertSensor(int)));
+    connect(panel, SIGNAL(deleteSensor(int)), this, SLOT(on_deleteSensor(int)));
+    connect(panel, SIGNAL(moveUpSensor(int)), this, SLOT(on_moveUpSensor(int)));
+    connect(panel, SIGNAL(moveDownSensor(int)), this, SLOT(on_moveDownSensor(int)));
   }
 
   if (IS_TARANIS_X9(firmware->getBoard())) {
@@ -665,15 +730,11 @@ TelemetryPanel::TelemetryPanel(QWidget *parent, ModelData & model, GeneralSettin
     ui->topbarGB->hide();
   }
 
-  RawSourceFilterItemModel * srcModel = (new RawSourceFilterItemModel(&generalSettings, &model, this));
-  connect(this, &TelemetryPanel::updated, srcModel, &RawSourceFilterItemModel::update);
-
   for (int i = 0; i < firmware->getCapability(TelemetryCustomScreens); i++) {
-    TelemetryCustomScreen * tab = new TelemetryCustomScreen(this, model, model.frsky.screens[i], generalSettings, firmware, srcModel);
-    ui->customScreens->addTab(tab, tr("Telemetry screen %1").arg(i+1));
+    TelemetryCustomScreen * tab = new TelemetryCustomScreen(this, model, model.frsky.screens[i], generalSettings, firmware, rawSourceFilteredModel);
+    ui->customScreens->addTab(tab, tr("Telemetry screen %1").arg(i + 1));
     telemetryCustomScreens[i] = tab;
     connect(tab, &TelemetryCustomScreen::modified, this, &TelemetryPanel::onModified);
-    connect(this, &TelemetryPanel::updated, tab, &TelemetryCustomScreen::update);
   }
 
   disableMouseScrolling();
@@ -703,83 +764,82 @@ void TelemetryPanel::update()
     populateTelemetrySourcesComboBox(ui->varioSource, model, false);
   }
 
-  for (unsigned i=0; i<CPN_MAX_SENSORS; ++i) {
+  for (int i = 0; i < sensorCapability; ++i) {
     sensorPanels[i]->update();
   }
 
-  emit updated();
+  for (int i = 0; i < firmware->getCapability(TelemetryCustomScreens); i++) {
+    telemetryCustomScreens[i]->update();
+  }
 }
 
 void TelemetryPanel::setup()
 {
-    QString firmware_id = g.profile[g.id()].fwType();
+  lock = true;
 
-    lock = true;
+  ui->telemetryProtocol->addItem(tr("FrSky S.PORT"), 0);
+  ui->telemetryProtocol->addItem(tr("FrSky D"), 1);
+  if (IS_9XRPRO(firmware->getBoard()) ||
+      (IS_TARANIS(firmware->getBoard()) && generalSettings.auxSerialMode == 2)) {
+    ui->telemetryProtocol->addItem(tr("FrSky D (cable)"), 2);
+  }
+  ui->telemetryProtocol->setCurrentIndex(model->telemetryProtocol);
+  ui->ignoreSensorIds->setField(model->frsky.ignoreSensorIds, this);
+  ui->disableTelemetryAlarms->setField(model->rssiAlarms.disabled);
 
-    ui->telemetryProtocol->addItem(tr("FrSky S.PORT"), 0);
-    ui->telemetryProtocol->addItem(tr("FrSky D"), 1);
-    if (IS_9XRPRO(firmware->getBoard()) ||
-        (IS_TARANIS(firmware->getBoard()) && generalSettings.auxSerialMode == 2)) {
-      ui->telemetryProtocol->addItem(tr("FrSky D (cable)"), 2);
-    }
-    ui->telemetryProtocol->setCurrentIndex(model->telemetryProtocol);
-    ui->ignoreSensorIds->setField(model->frsky.ignoreSensorIds, this);
-    ui->disableTelemetryAlarms->setField(model->rssiAlarms.disabled);
+  ui->rssiAlarmWarningSB->setValue(model->rssiAlarms.warning);
+  ui->rssiAlarmCriticalSB->setValue(model->rssiAlarms.critical);
 
-    ui->rssiAlarmWarningSB->setValue(model->rssiAlarms.warning);
-    ui->rssiAlarmCriticalSB->setValue(model->rssiAlarms.critical);
+  ui->rssiSourceLabel->show();
+  ui->rssiSourceLabel->setText(tr("Source"));
+  ui->rssiSourceCB->setField(model->rssiSource, this);
+  ui->rssiSourceCB->show();
+  populateTelemetrySourcesComboBox(ui->rssiSourceCB, model, false);
 
-    ui->rssiSourceLabel->show();
-    ui->rssiSourceLabel->setText(tr("Source"));
-    ui->rssiSourceCB->setField(model->rssiSource, this);
-    ui->rssiSourceCB->show();
-    populateTelemetrySourcesComboBox(ui->rssiSourceCB, model, false);
+  ui->rssiAlarmWarningCB->hide();
+  ui->rssiAlarmCriticalCB->hide();
+  ui->rssiAlarmWarningLabel->setText(tr("Low Alarm"));
+  ui->rssiAlarmCriticalLabel->setText(tr("Critical Alarm"));
 
-    ui->rssiAlarmWarningCB->hide();
-    ui->rssiAlarmCriticalCB->hide();
-    ui->rssiAlarmWarningLabel->setText(tr("Low Alarm"));
-    ui->rssiAlarmCriticalLabel->setText(tr("Critical Alarm"));
-
-    int varioCap = firmware->getCapability(HasVario);
-    if (!varioCap) {
-      ui->varioLimitMax_DSB->hide();
+  if (!firmware->getCapability(HasVario)) {
+    ui->varioLimitMax_DSB->hide();
+    ui->varioLimitMin_DSB->hide();
+    ui->varioLimitCenterMin_DSB->hide();
+    ui->varioLimitCenterMax_DSB->hide();
+    ui->varioLimit_label->hide();
+    ui->VarioLabel_1->hide();
+    ui->VarioLabel_2->hide();
+    ui->VarioLabel_3->hide();
+    ui->VarioLabel_4->hide();
+    ui->varioSource->hide();
+    ui->varioSource_label->hide();
+  }
+  else {
+    if (!firmware->getCapability(HasVarioSink)) {
       ui->varioLimitMin_DSB->hide();
       ui->varioLimitCenterMin_DSB->hide();
-      ui->varioLimitCenterMax_DSB->hide();
-      ui->varioLimit_label->hide();
       ui->VarioLabel_1->hide();
       ui->VarioLabel_2->hide();
-      ui->VarioLabel_3->hide();
-      ui->VarioLabel_4->hide();
-      ui->varioSource->hide();
-      ui->varioSource_label->hide();
     }
-    else {
-      if (!firmware->getCapability(HasVarioSink)) {
-        ui->varioLimitMin_DSB->hide();
-        ui->varioLimitCenterMin_DSB->hide();
-        ui->VarioLabel_1->hide();
-        ui->VarioLabel_2->hide();
-      }
-      ui->varioLimitMin_DSB->setValue(model->frsky.varioMin-10);
-      ui->varioLimitMax_DSB->setValue(model->frsky.varioMax+10);
-      ui->varioLimitCenterMax_DSB->setValue((model->frsky.varioCenterMax/10.0)+0.5);
-      ui->varioLimitCenterMin_DSB->setValue((model->frsky.varioCenterMin/10.0)-0.5);
-    }
+    ui->varioLimitMin_DSB->setValue(model->frsky.varioMin - 10);
+    ui->varioLimitMax_DSB->setValue(model->frsky.varioMax + 10);
+    ui->varioLimitCenterMax_DSB->setValue((model->frsky.varioCenterMax / 10.0) + 0.5);
+    ui->varioLimitCenterMin_DSB->setValue((model->frsky.varioCenterMin / 10.0) - 0.5);
+  }
 
-    ui->altimetryGB->setVisible(firmware->getCapability(HasVario)),
-    ui->frskyProtoCB->setDisabled(firmware->getCapability(NoTelemetryProtocol));
+  ui->altimetryGB->setVisible(firmware->getCapability(HasVario)),
+  ui->frskyProtoCB->setDisabled(firmware->getCapability(NoTelemetryProtocol));
 
-    if (firmware->getCapability(Telemetry)) {
-      ui->frskyProtoCB->addItem(tr("Winged Shadow How High"));
-    }
-    else {
-      ui->frskyProtoCB->addItem(tr("Winged Shadow How High (not supported)"));
-    }
+  if (firmware->getCapability(Telemetry)) {
+    ui->frskyProtoCB->addItem(tr("Winged Shadow How High"));
+  }
+  else {
+    ui->frskyProtoCB->addItem(tr("Winged Shadow How High (not supported)"));
+  }
 
-    ui->variousGB->hide();
+  ui->variousGB->hide();
 
-    lock = false;
+  lock = false;
 }
 
 void TelemetryPanel::populateVarioSource()
@@ -842,7 +902,7 @@ void TelemetryPanel::on_frskyProtoCB_currentIndexChanged(int index)
 {
   if (!lock) {
     model->frsky.usrProto = index;
-    for (int i=0; i<firmware->getCapability(TelemetryCustomScreens); i++)
+    for (int i = 0; i < firmware->getCapability(TelemetryCustomScreens); i++)
       telemetryCustomScreens[i]->update();
     emit modified();
   }
@@ -862,23 +922,23 @@ void TelemetryPanel::on_rssiAlarmCriticalSB_editingFinished()
 
 void TelemetryPanel::on_varioLimitMin_DSB_editingFinished()
 {
-  model->frsky.varioMin = round(ui->varioLimitMin_DSB->value()+10);
+  model->frsky.varioMin = round(ui->varioLimitMin_DSB->value() + 10);
   emit modified();
 }
 
 void TelemetryPanel::on_varioLimitMax_DSB_editingFinished()
 {
-  model->frsky.varioMax = round(ui->varioLimitMax_DSB->value()-10);
+  model->frsky.varioMax = round(ui->varioLimitMax_DSB->value() - 10);
   emit modified();
 }
 
 void TelemetryPanel::on_varioLimitCenterMin_DSB_editingFinished()
 {
   if (!lock) {
-    if (ui->varioLimitCenterMin_DSB->value()>ui->varioLimitCenterMax_DSB->value()) {
+    if (ui->varioLimitCenterMin_DSB->value() > ui->varioLimitCenterMax_DSB->value()) {
       ui->varioLimitCenterMax_DSB->setValue(ui->varioLimitCenterMin_DSB->value());
     }
-    model->frsky.varioCenterMin = round((ui->varioLimitCenterMin_DSB->value()+0.5)*10);
+    model->frsky.varioCenterMin = round((ui->varioLimitCenterMin_DSB->value() + 0.5) * 10);
     emit modified();
   }
 }
@@ -886,10 +946,10 @@ void TelemetryPanel::on_varioLimitCenterMin_DSB_editingFinished()
 void TelemetryPanel::on_varioLimitCenterMax_DSB_editingFinished()
 {
   if (!lock) {
-    if (ui->varioLimitCenterMin_DSB->value()>ui->varioLimitCenterMax_DSB->value()) {
+    if (ui->varioLimitCenterMin_DSB->value() > ui->varioLimitCenterMax_DSB->value()) {
       ui->varioLimitCenterMax_DSB->setValue(ui->varioLimitCenterMin_DSB->value());
     }
-    model->frsky.varioCenterMax = round((ui->varioLimitCenterMax_DSB->value()-0.5)*10);
+    model->frsky.varioCenterMax = round((ui->varioLimitCenterMax_DSB->value() - 0.5) * 10);
     emit modified();
   }
 }
@@ -917,8 +977,72 @@ void TelemetryPanel::on_clearAllSensors()
 {
   for (int i = 0; i < CPN_MAX_SENSORS; i++) {
     model->sensorData[i].clear();
+    model->updateAllReferences(ModelData::REF_UPD_TYPE_SENSOR, ModelData::REF_UPD_ACT_CLEAR, i);
   }
 
+  updateItemModels();
   update();
   emit modified();
+}
+
+void TelemetryPanel::on_insertSensor(int selectedIndex)
+{
+  memmove(&model->sensorData[selectedIndex + 1], &model->sensorData[selectedIndex], (CPN_MAX_SENSORS - (selectedIndex + 1)) * sizeof(SensorData));
+  model->sensorData[selectedIndex].clear();
+  model->updateAllReferences(ModelData::REF_UPD_TYPE_SENSOR, ModelData::REF_UPD_ACT_SHIFT, selectedIndex, 0, 1);
+
+  updateItemModels();
+  update();
+  emit modified();
+}
+
+void TelemetryPanel::on_deleteSensor(int selectedIndex)
+{
+  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Delete Sensor. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+    return;
+
+  memmove(&model->sensorData[selectedIndex], &model->sensorData[selectedIndex + 1], (CPN_MAX_SENSORS - (selectedIndex + 1)) * sizeof(SensorData));
+  model->sensorData[CPN_MAX_SENSORS - 1].clear();
+  model->updateAllReferences(ModelData::REF_UPD_TYPE_SENSOR, ModelData::REF_UPD_ACT_SHIFT, selectedIndex, 0, -1);
+
+  updateItemModels();
+  update();
+  emit modified();
+}
+
+void TelemetryPanel::on_moveUpSensor(int selectedIndex)
+{
+  swapData(selectedIndex, selectedIndex - 1);
+}
+
+void TelemetryPanel::on_moveDownSensor(int selectedIndex)
+{
+  swapData(selectedIndex, selectedIndex + 1);
+}
+
+void TelemetryPanel::swapData(int idx1, int idx2)
+{
+  if ((idx1 != idx2) && (!model->sensorData[idx1].isEmpty() || !model->sensorData[idx2].isEmpty())) {
+    SensorData sdtmp = model->sensorData[idx2];
+    SensorData *sd1 = &model->sensorData[idx1];
+    SensorData *sd2 = &model->sensorData[idx2];
+    memcpy(sd2, sd1, sizeof(SensorData));
+    memcpy(sd1, &sdtmp, sizeof(SensorData));
+    model->updateAllReferences(ModelData::REF_UPD_TYPE_SENSOR, ModelData::REF_UPD_ACT_SWAP, idx1, idx2);
+    updateItemModels();
+    update();
+    emit modified();
+  }
+}
+
+void TelemetryPanel::on_dataModifiedSensor()
+{
+  updateItemModels();
+  update();
+  emit modified();
+}
+
+void TelemetryPanel::updateItemModels()
+{
+  commonItemModels->update(CommonItemModels::RMO_TELEMETRY_SENSORS);
 }

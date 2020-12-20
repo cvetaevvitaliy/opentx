@@ -175,6 +175,18 @@ if(MULTIMODULE OR AFHDS3)
  set(SRC ${SRC} telemetry/flysky_ibus.cpp )
 endif()
 
+if(GHOST)
+  add_definitions(-DGHOST)
+  set(PULSES_SRC
+    ${PULSES_SRC}
+    ghost.cpp
+    )
+  set(SRC
+    ${SRC}
+    telemetry/ghost.cpp
+    )
+endif()
+
 add_definitions(-DCPUARM)
 add_definitions(-DGPS)
 add_definitions(-DBOLD_FONT -DBATTGRAPH -DTHRTRACE)

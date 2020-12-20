@@ -21,12 +21,26 @@
 #include "inputs.h"
 #include "expodialog.h"
 #include "helpers.h"
+#include "rawitemfilteredmodel.h"
 
-InputsPanel::InputsPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware):
+InputsPanel::InputsPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels):
   ModelPanel(parent, model, generalSettings, firmware),
   expoInserted(false),
-  modelPrinter(firmware, generalSettings, model)
+  modelPrinter(firmware, generalSettings, model),
+  commonItemModels(commonItemModels)
 {
+  rawSourceFilteredModel = new RawItemFilteredModel(commonItemModels->rawSourceItemModel(), (RawSource::InputSourceGroups & ~ RawSource::NoneGroup & ~RawSource::InputsGroup), this);
+  connect(rawSourceFilteredModel, &RawItemFilteredModel::dataAboutToBeUpdated, this, &InputsPanel::onModelDataAboutToBeUpdated);
+  connect(rawSourceFilteredModel, &RawItemFilteredModel::dataUpdateComplete, this, &InputsPanel::onModelDataUpdateComplete);
+
+  rawSwitchFilteredModel = new RawItemFilteredModel(commonItemModels->rawSwitchItemModel(), RawSwitch::MixesContext, this);
+  connect(rawSwitchFilteredModel, &RawItemFilteredModel::dataAboutToBeUpdated, this, &InputsPanel::onModelDataAboutToBeUpdated);
+  connect(rawSwitchFilteredModel, &RawItemFilteredModel::dataUpdateComplete, this, &InputsPanel::onModelDataUpdateComplete);
+
+  curveFilteredModel = new RawItemFilteredModel(commonItemModels->curveItemModel(), RawItemFilteredModel::AllFilter, this);
+  connect(curveFilteredModel, &RawItemFilteredModel::dataAboutToBeUpdated, this, &InputsPanel::onModelDataAboutToBeUpdated);
+  connect(curveFilteredModel, &RawItemFilteredModel::dataUpdateComplete, this, &InputsPanel::onModelDataUpdateComplete);
+
   inputsCount = firmware->getCapability(VirtualInputs);
   if (inputsCount == 0)
     inputsCount = CPN_MAX_STICKS;
@@ -180,13 +194,14 @@ void InputsPanel::gm_openExpo(int index)
   if (firmware->getCapability(VirtualInputs))
     inputName = model->inputNames[ed.chn];
 
-  ExpoDialog *g = new ExpoDialog(this, *model, &ed, generalSettings, firmware, inputName);
-  if (g->exec())  {
+  ExpoDialog *dlg = new ExpoDialog(this, *model, &ed, generalSettings, firmware, inputName, rawSourceFilteredModel, rawSwitchFilteredModel, curveFilteredModel);
+  if (dlg->exec())  {
     model->expoData[index] = ed;
     if (firmware->getCapability(VirtualInputs))
       strncpy(model->inputNames[ed.chn], inputName.toLatin1().data(), INPUT_NAME_LEN);
-    emit modified();
     update();
+    updateItemModels();
+    emit modified();
   }
   else {
     if (expoInserted) {
@@ -195,6 +210,7 @@ void InputsPanel::gm_openExpo(int index)
     expoInserted=false;
     update();
   }
+  delete dlg;
 }
 
 int InputsPanel::getExpoIndex(unsigned int dch)
@@ -227,26 +243,28 @@ void InputsPanel::setSelectedByExpoList(QList<int> list)
   }
 }
 
-void InputsPanel::exposDelete(bool ask)
+void InputsPanel::exposDelete(bool prompt)
 {
   QList<int> list = createExpoListFromSelected();
   if (list.isEmpty())
     return;
 
-  QMessageBox::StandardButton ret = QMessageBox::No;
-
-  if (ask)
-    ret = QMessageBox::warning(this, CPN_STR_APP_NAME, tr("Delete selected Inputs. Are you sure?"), QMessageBox::Yes | QMessageBox::No);
-
-  if ((ret == QMessageBox::Yes) || (!ask)) {
-      exposDeleteList(list, ask);
-      emit modified();
-      update();
+  if (prompt) {
+    if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Delete selected Input lines. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+      return;
   }
+
+  exposDeleteList(list, prompt);
+  update();
+  updateItemModels();
+  emit modified();
 }
 
 void InputsPanel::exposCut()
 {
+  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Cut selected Input lines. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+    return;
+
   exposCopy();
   exposDelete(false);
 }
@@ -312,11 +330,11 @@ void InputsPanel::pasteExpoMimeData(const QMimeData * mimeData, int destIdx)
       i += sizeof(ExpoData);
     }
 
-    emit modified();
     update();
+    updateItemModels();
+    emit modified();
   }
 }
-
 
 void InputsPanel::exposPaste()
 {
@@ -481,8 +499,9 @@ void InputsPanel::moveExpoList(bool down)
     }
   }
   if (mod) {
-    emit modified();
     update();
+    updateItemModels();
+    emit modified();
   }
   setSelectedByExpoList(highlightList);
 }
@@ -515,13 +534,14 @@ void InputsPanel::exposDeleteList(QList<int> list, bool clearName)
 
 void InputsPanel::clearExpos()
 {
-  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Clear all Inputs. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Clear all Input lines. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
     model->clearInputs();
     for (int i = 0; i < inputsCount; i++) {
       model->updateAllReferences(ModelData::REF_UPD_TYPE_INPUT, ModelData::REF_UPD_ACT_CLEAR, i);
     }
-    emit modified();
     update();
+    updateItemModels();
+    emit modified();
   }
 }
 
@@ -559,7 +579,7 @@ bool InputsPanel::cmInputMoveUpAllowed() const
 
 void InputsPanel::cmInputClear()
 {
-  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Clear Input. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Clear all lines for the selected Inputs. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
     return;
 
   for (int i = CPN_MAX_EXPOS - 1; i >= 0; i--) {
@@ -569,12 +589,13 @@ void InputsPanel::cmInputClear()
   }
   model->updateAllReferences(ModelData::REF_UPD_TYPE_INPUT, ModelData::REF_UPD_ACT_CLEAR, inputIdx);
   update();
+  updateItemModels();
   emit modified();
 }
 
 void InputsPanel::cmInputDelete()
 {
-  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Delete Input. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+  if (QMessageBox::question(this, CPN_STR_APP_NAME, tr("Delete all lines for the selected Inputs. Are you sure?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
     return;
 
   for (int i = 0; i < CPN_MAX_EXPOS; i++) {
@@ -592,6 +613,7 @@ void InputsPanel::cmInputDelete()
 
   model->updateAllReferences(ModelData::REF_UPD_TYPE_INPUT, ModelData::REF_UPD_ACT_SHIFT, inputIdx, 0, -1);
   update();
+  updateItemModels();
   emit modified();
 }
 
@@ -610,6 +632,7 @@ void InputsPanel::cmInputInsert()
 
   model->updateAllReferences(ModelData::REF_UPD_TYPE_INPUT, ModelData::REF_UPD_ACT_SHIFT, inputIdx, 0, 1);
   update();
+  updateItemModels();
   emit modified();
 }
 
@@ -671,6 +694,7 @@ void InputsPanel::cmInputSwapData(int idx1, int idx2)
 
   model->updateAllReferences(ModelData::REF_UPD_TYPE_INPUT, ModelData::REF_UPD_ACT_SWAP, idx1, idx2);
   update();
+  updateItemModels();
   emit modified();
 }
 
@@ -704,4 +728,20 @@ int InputsPanel::getInputIndexFromSelected()
     idx = ed->chn;
   }
   return idx;
+}
+
+void InputsPanel::onModelDataAboutToBeUpdated()
+{
+  lock = true;
+}
+
+void InputsPanel::onModelDataUpdateComplete()
+{
+  update();
+  lock = false;
+}
+
+void InputsPanel::updateItemModels()
+{
+  commonItemModels->update(CommonItemModels::RMO_INPUTS);
 }
