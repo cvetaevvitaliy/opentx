@@ -24,8 +24,7 @@
 #include "modeledit.h"
 #include "eeprominterface.h"
 
-class CommonItemModels;
-class RawItemFilteredModel;
+class RawSwitchFilterItemModel;
 
 constexpr char MIMETYPE_FLIGHTMODE[] = "application/x-companion-flightmode";
 constexpr char MIMETYPE_GVAR_PARAMS[]  = "application/x-companion-gvar-params";
@@ -41,20 +40,18 @@ class FlightModePanel : public ModelPanel
     Q_OBJECT
 
   public:
-    FlightModePanel(QWidget *parent, ModelData &model, int modeIdx, GeneralSettings & generalSettings, Firmware * firmware, RawItemFilteredModel * rawSwitchFilteredModel);
+    FlightModePanel(QWidget *parent, ModelData &model, int modeIdx, GeneralSettings & generalSettings, Firmware * firmware, RawSwitchFilterItemModel * switchModel);
     virtual ~FlightModePanel();
 
     virtual void update();
 
   signals:
-    void gvNameChanged();
-    void phaseDataChanged();
-    void phaseNameChanged();
-    void phaseSwitchChanged();
+    void nameModified();
+    void datachanged();
 
   private slots:
     void phaseName_editingFinished();
-    void phaseSwitch_currentIndexChanged(int index);
+    void phaseSwitchChanged(int index);
     void phaseFadeIn_editingFinished();
     void phaseFadeOut_editingFinished();
     void phaseTrimUse_currentIndexChanged(int index);
@@ -90,8 +87,6 @@ class FlightModePanel : public ModelPanel
     void gvCmPaste();
     void gvCmMoveDown();
     void gvCmMoveUp();
-    void onModelDataAboutToBeUpdated();
-    void onModelDataUpdateComplete();
 
   private:
     Ui::FlightMode *ui;
@@ -116,6 +111,7 @@ class FlightModePanel : public ModelPanel
     QVector<QComboBox *> trimsUse;
     QVector<QSpinBox *> trimsValue;
     QVector<QSlider *> trimsSlider;
+    RawSwitchFilterItemModel * rawSwitchItemModel;
     Board::Type board;
 
     void trimUpdate(unsigned int trim);
@@ -145,7 +141,7 @@ class FlightModesPanel : public ModelPanel
     Q_OBJECT
 
   public:
-    FlightModesPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels);
+    FlightModesPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware);
     virtual ~FlightModesPanel();
 
   public slots:
@@ -156,17 +152,13 @@ class FlightModesPanel : public ModelPanel
 
   private slots:
     void onPhaseNameChanged();
-    void onTabIndexChanged(int index);
 
   private:
     QString getTabName(int index);
 
     int modesCount;
     QTabWidget *tabWidget;
-    CommonItemModels *commonItemModels;
-    RawItemFilteredModel *rawSwitchFilteredModel;
-    QVector<GenericPanel *> panels;
-    void updateItemModels();
+
 };
 
 #endif // _FLIGHTMODES_H_

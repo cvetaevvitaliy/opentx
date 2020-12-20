@@ -25,9 +25,6 @@
 #include "mixerslistwidget.h"
 #include "modelprinter.h"
 
-class CommonItemModels;
-class RawItemFilteredModel;
-
 constexpr char MIMETYPE_EXPO[] = "application/x-companion-expo";
 
 class InputsPanel : public ModelPanel
@@ -35,7 +32,7 @@ class InputsPanel : public ModelPanel
     Q_OBJECT
 
   public:
-    InputsPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels);
+    InputsPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware);
     virtual ~InputsPanel();
 
     virtual void update();
@@ -62,8 +59,6 @@ class InputsPanel : public ModelPanel
     void cmInputInsert();
     void cmInputMoveDown();
     void cmInputMoveUp();
-    void onModelDataAboutToBeUpdated();
-    void onModelDataUpdateComplete();
 
   private:
     bool expoInserted;
@@ -72,10 +67,6 @@ class InputsPanel : public ModelPanel
     ModelPrinter modelPrinter;
     int selectedIdx;
     int inputIdx;
-    CommonItemModels * commonItemModels;
-    RawItemFilteredModel *rawSourceFilteredModel;
-    RawItemFilteredModel *rawSwitchFilteredModel;
-    RawItemFilteredModel *curveFilteredModel;
 
     int getExpoIndex(unsigned int dch);
     bool gm_insertExpo(int idx);
@@ -96,7 +87,6 @@ class InputsPanel : public ModelPanel
     bool isExpoIndex(const int index);
     int getIndexFromSelected();
     int getInputIndexFromSelected();
-    void updateItemModels();
 };
 
 #endif // _INPUTS_H_

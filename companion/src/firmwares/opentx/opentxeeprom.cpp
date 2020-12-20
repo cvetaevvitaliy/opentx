@@ -45,7 +45,7 @@ inline int MAX_SWITCHES(Board::Type board, int version)
   if (IS_TARANIS_X9D(board))
     return 9;
 
-  if (IS_FAMILY_T12(board))
+  if (IS_JUMPER_T12(board))
     return 8;
 
   return Boards::getCapability(board, Board::Switches);
@@ -1406,7 +1406,8 @@ class CustomFunctionsConversionTable: public ConversionTable {
         addConversion(FuncAdjustGV1+i, val);
       val++;
       addConversion(FuncVolume, val++);
-      addConversion(FuncSetFailsafe, val++);
+      addConversion(FuncSetFailsafeInternalModule, val);
+      addConversion(FuncSetFailsafeExternalModule, val++);
       addConversion(FuncRangeCheckInternalModule, val);
       addConversion(FuncRangeCheckExternalModule, val++);
       addConversion(FuncBindInternalModule, val);
@@ -1519,6 +1520,9 @@ class ArmCustomFunctionField: public TransformedField {
           *((uint16_t *)_param) = fn.param;
           *((uint8_t *)(_param+3)) = fn.func - FuncSetTimer1;
         }
+        else if (fn.func >= FuncSetFailsafeInternalModule && fn.func <= FuncSetFailsafeExternalModule) {
+          *((uint16_t *)_param) = fn.func - FuncSetFailsafeInternalModule;
+        }
         else if (fn.func >= FuncRangeCheckInternalModule && fn.func <= FuncRangeCheckExternalModule) {
           *((uint16_t *)_param) = fn.func - FuncRangeCheckInternalModule;
         }
@@ -1540,7 +1544,7 @@ class ArmCustomFunctionField: public TransformedField {
             value = fn.param;
           *((uint16_t *)_param) = value;
         }
-        else if (fn.func == FuncPlayValue || fn.func == FuncVolume || fn.func == FuncBacklight) {
+        else if (fn.func == FuncPlayValue || fn.func == FuncVolume) {
           unsigned int value;
           sourcesConversionTable->exportValue(fn.param, (int &)value);
           *((uint16_t *)_param) = value;
@@ -1583,7 +1587,7 @@ class ArmCustomFunctionField: public TransformedField {
       else if (fn.func == FuncPlayPrompt || fn.func == FuncBackgroundMusic || fn.func == FuncPlayScript) {
         memcpy(fn.paramarm, _param, sizeof(fn.paramarm));
       }
-      else if (fn.func == FuncVolume || fn.func == FuncBacklight) {
+      else if (fn.func == FuncVolume) {
         sourcesConversionTable->importValue(value, (int &)fn.param);
       }
       else if (fn.func >= FuncAdjustGV1 && fn.func <= FuncAdjustGVLast) {
@@ -2716,7 +2720,7 @@ OpenTxGeneralData::OpenTxGeneralData(GeneralSettings & generalData, Board::Type 
     internalField.Append(new BoolField<1>(this, generalData.disableRssiPoweroffAlarm));
     internalField.Append(new UnsignedField<2>(this, generalData.usbMode));
     internalField.Append(new UnsignedField<2>(this, generalData.jackMode));
-    internalField.Append(new BoolField<1>(this, generalData.sportPower));
+    internalField.Append(new SpareBitsField<1>(this));
   }
   else {
     internalField.Append(new SpareBitsField<7>(this));

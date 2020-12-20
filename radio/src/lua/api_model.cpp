@@ -514,9 +514,9 @@ Return input data for given input and line number
  * `curveType` (number) curve type (function, expo, custom curve)
  * `curveValue` (number) curve index
  * `carryTrim` (boolean) input trims applied
- * 'flightModes' (number) bit-mask of active flight modes
+ * 'flightModes' (table) table of enabled flightModes {0,2,7} means that the input is enabled for FM0, FM2 and FM7
 
-@status current Introduced in 2.0.0, curveType/curveValue/carryTrim added in 2.3, inputName added 2.3.10, flighmode reworked in 2.3.11
+@status current Introduced in 2.0.0, curveType/curveValue/carryTrim added in 2.3, flightModes, inputName added 2.3.10
 */
 static int luaModelGetInput(lua_State *L)
 {
@@ -536,7 +536,16 @@ static int luaModelGetInput(lua_State *L)
     lua_pushtableinteger(L, "curveType", expo->curve.type);
     lua_pushtableinteger(L, "curveValue", expo->curve.value);
     lua_pushtableinteger(L, "carryTrim", expo->carryTrim);
-    lua_pushtableinteger(L, "flightModes", expo->flightModes);
+    lua_pushstring(L, "flightModes");
+    lua_newtable(L);
+    for (int i = 0, cnt = 0; i < MAX_FLIGHT_MODES; i++) {
+      if (!(expo->flightModes & (1 << i))) {
+        lua_pushinteger(L, cnt++);
+        lua_pushinteger(L, i);
+        lua_settable(L, -3);
+      }
+    }
+    lua_settable(L, -3);
   }
   else {
     lua_pushnil(L);
@@ -604,7 +613,14 @@ static int luaModelInsertInput(lua_State *L)
         expo->carryTrim = lua_toboolean(L, -1);
       }
       else if (!strcmp(key, "flightModes")) {
-        expo->flightModes = luaL_checkinteger(L, -1);
+        luaL_checktype(L, -1, LUA_TTABLE);
+        int flighModes = 0x1FF;
+        for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+          uint16_t val = luaL_checkinteger(L, -1);
+          if (val < MAX_FLIGHT_MODES)
+            flighModes &= ~(1 << val);
+        }
+        expo->flightModes = flighModes;
       }
     }
   }
@@ -737,8 +753,9 @@ Get configuration for specified Mix
  * `delayDown` (number) delay down
  * `speedUp` (number) speed up
  * `speedDown` (number) speed down
+ * 'flightModes' (table) table of enabled flightModes {0,2,7} means that the input is enabled for FM0, FM2 and FM7
 
-@status current Introduced in 2.0.0, parameters below `multiplex` added in 2.0.13
+@status current Introduced in 2.0.0, parameters below `multiplex` added in 2.0.13, flightModes added 2.3.10
 */
 static int luaModelGetMix(lua_State *L)
 {
@@ -764,6 +781,16 @@ static int luaModelGetMix(lua_State *L)
     lua_pushtableinteger(L, "delayDown", mix->delayDown);
     lua_pushtableinteger(L, "speedUp", mix->speedUp);
     lua_pushtableinteger(L, "speedDown", mix->speedDown);
+    lua_pushstring(L, "flightModes");
+    lua_newtable(L);
+    for (int i = 0, cnt = 0; i < MAX_FLIGHT_MODES; i++) {
+      if (!(mix->flightModes & (1 << i))) {
+        lua_pushinteger(L, cnt++);
+        lua_pushinteger(L, i);
+        lua_settable(L, -3);
+      }
+    }
+    lua_settable(L, -3);
   }
   else {
     lua_pushnil(L);
@@ -782,7 +809,7 @@ Insert a mixer line into Channel
 
 @param value (table) see model.getMix() for table format
 
-@status current Introduced in 2.0.0, parameters below `multiplex` added in 2.0.13
+@status current Introduced in 2.0.0, parameters below `multiplex` added in 2.0.13, flightModes added 2.3.10
 */
 static int luaModelInsertMix(lua_State *L)
 {
@@ -846,6 +873,16 @@ static int luaModelInsertMix(lua_State *L)
       }
       else if (!strcmp(key, "speedDown")) {
         mix->speedDown = luaL_checkinteger(L, -1);
+      }
+      else if (!strcmp(key, "flightModes")) {
+        luaL_checktype(L, -1, LUA_TTABLE);
+        int flighModes = 0x1FF;
+        for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+          uint16_t val = luaL_checkinteger(L, -1);
+          if (val < MAX_FLIGHT_MODES)
+            flighModes &= ~(1 << val);
+        }
+        mix->flightModes = flighModes;
       }
     }
   }
@@ -1514,16 +1551,16 @@ Get Telemetry Sensor parameters
 
 @param sensor (unsigned number) sensor number (use 0 for sensor 1)
 
-@retval nil requested sensor does not exist
+@retval nil requested logical switch does not exist
 
-@retval table with sensor data:
- * `type` (number) 0 = custom, 1 = calculated 
- * `name` (string) Name
- * `unit` (number) See list of units in the appendix of the OpenTX Lua Reference Guide
- * `prec` (number) Number of decimals
- * `id`   (number) Only custom sensors
- * `instance` (number) Only custom sensors
- * `formula` (number) Only calculated sensors. 0 = Add etc. see list of formula choices in Companion popup
+@retval table logical switch data:
+ * `func` (number) function index
+ * `v1` (number) V1 value (index)
+ * `v2` (number) V2 value (index or value)
+ * `v3` (number) V3 value (index or value)
+ * `and` (number) AND switch index
+ * `delay` (number) delay (time in 1/10 s)
+ * `duration` (number) duration (time in 1/10 s)
 
 @status current Introduced in 2.3.0
 */
@@ -1548,28 +1585,6 @@ static int luaModelGetSensor(lua_State *L)
   else {
     lua_pushnil(L);
   }
-  return 1;
-}
-
-/*luadoc
-@function model.resetSensor(sensor)
-
-Reset Telemetry Sensor parameters
-
-@param sensor (unsigned number) sensor number (use 0 for sensor 1)
-
-@retval nil
-
-@status current Introduced in 2.3.11
-*/
-static int luaModelResetSensor(lua_State *L)
-{
-  unsigned int idx = luaL_checkunsigned(L, 1);
-  if (idx < MAX_TELEMETRY_SENSORS) {
-    telemetryItems[idx].clear();
-  }
-  
-  lua_pushnil(L);
   return 1;
 }
 
@@ -1606,6 +1621,5 @@ const luaL_Reg modelLib[] = {
   { "getGlobalVariable", luaModelGetGlobalVariable },
   { "setGlobalVariable", luaModelSetGlobalVariable },
   { "getSensor", luaModelGetSensor },
-  { "resetSensor", luaModelResetSensor },
   { NULL, NULL }  /* sentinel */
 };

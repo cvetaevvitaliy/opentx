@@ -50,7 +50,6 @@ class HardwarePanel : public GeneralPanel
     void on_txVoltageCalibration_editingFinished();
     void on_filterEnable_stateChanged();
     void on_rtcCheckDisable_stateChanged();
-    void on_sportPower_stateChanged();
 
     void on_serialPortMode_currentIndexChanged(int index);
 
@@ -63,7 +62,6 @@ class HardwarePanel : public GeneralPanel
     Ui::Hardware *ui;
 
     void setValues();
-    bool isSwitch3Pos(int idx);
 };
 
 #endif // _HARDWARE_H_

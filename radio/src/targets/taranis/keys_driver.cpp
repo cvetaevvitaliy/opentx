@@ -37,31 +37,6 @@ uint32_t readKeys()
     result |= 1 << KEY_PAGE;
 #endif
 
-#if defined(KEYS_GPIO_PIN_PAGEUP)
-  if (~KEYS_GPIO_REG_PAGEUP & KEYS_GPIO_PIN_PAGEUP)
-    result |= 1 << KEY_PAGEUP;
-#endif
-
-#if defined(KEYS_GPIO_PIN_PAGEDN)
-  if (~KEYS_GPIO_REG_PAGEDN & KEYS_GPIO_PIN_PAGEDN)
-    result |= 1 << KEY_PAGEDN;
-#endif
-
-#if defined(KEYS_GPIO_PIN_SYS)
-  if (~KEYS_GPIO_REG_SYS & KEYS_GPIO_PIN_SYS)
-    result |= 1 << KEY_SYS;
-#endif
-
-#if defined(KEYS_GPIO_PIN_MDL)
-  if (~KEYS_GPIO_REG_MDL & KEYS_GPIO_PIN_MDL)
-    result |= 1 << KEY_MODEL;
-#endif
-
-#if defined(KEYS_GPIO_PIN_TELE)
-  if (~KEYS_GPIO_REG_TELE & KEYS_GPIO_PIN_TELE)
-    result |= 1 << KEY_TELE;
-#endif
-
   if (~KEYS_GPIO_REG_EXIT & KEYS_GPIO_PIN_EXIT)
     result |= 1 << KEY_EXIT;
 
@@ -140,7 +115,7 @@ void readKeysAndTrims()
 {
   uint8_t index = 0;
   uint32_t keys_input = readKeys();
-  for (unsigned i = 1; i != unsigned(1 << TRM_BASE); i <<= 1) {
+  for (uint8_t i = 1; i != uint8_t(1 << TRM_BASE); i <<= 1) {
     keys[index++].input(keys_input & i);
   }
 
@@ -200,15 +175,10 @@ uint32_t switchState(uint8_t index)
   uint32_t xxx = 0;
 
   switch (index) {
-#if defined(RADIO_TX12)
-    ADD_2POS_CASE(A);
-    ADD_3POS_CASE(B, 1);
-    ADD_3POS_CASE(C, 2);
-#else
     ADD_3POS_CASE(A, 0);
     ADD_3POS_CASE(B, 1);
     ADD_3POS_CASE(C, 2);
-#endif
+
 #if defined(PCBX9LITES)
     ADD_2POS_CASE(D);
     ADD_2POS_CASE(E);
@@ -231,10 +201,6 @@ uint32_t switchState(uint8_t index)
     ADD_2POS_CASE(H);
     ADD_2POS_CASE(I);
     // no SWJ on XLITE
-#elif defined(RADIO_TX12)
-    ADD_2POS_CASE(D);
-    ADD_3POS_CASE(E, 4);
-    ADD_3POS_CASE(F, 5);
 #elif defined(PCBX7)
     ADD_3POS_CASE(D, 3);
     ADD_2POS_CASE(F);

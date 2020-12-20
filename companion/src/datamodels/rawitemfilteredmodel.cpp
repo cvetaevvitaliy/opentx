@@ -19,6 +19,7 @@
  */
 
 #include "rawitemfilteredmodel.h"
+#include "rawitemdatamodels.h"
 
 RawItemFilteredModel::RawItemFilteredModel(QAbstractItemModel * sourceModel, int flags, QObject * parent) :
   QSortFilterProxyModel(parent),
@@ -29,12 +30,6 @@ RawItemFilteredModel::RawItemFilteredModel(QAbstractItemModel * sourceModel, int
   setFilterFlags(flags);
   setDynamicSortFilter(true);
   setSourceModel(sourceModel);
-
-  AbstractRawItemDataModel * itemModel = qobject_cast<AbstractRawItemDataModel *>(sourceModel);
-  if (itemModel) {
-    connect(itemModel, &AbstractRawItemDataModel::dataAboutToBeUpdated, this, &RawItemFilteredModel::onDataAboutToBeUpdated);
-    connect(itemModel, &AbstractRawItemDataModel::dataUpdateComplete, this, &RawItemFilteredModel::onDataUpdateComplete);
-  }
 }
 
 void RawItemFilteredModel::setFilterFlags(int flags)
@@ -61,17 +56,19 @@ bool RawItemFilteredModel::filterAcceptsRow(int sourceRow, const QModelIndex & s
 
 void RawItemFilteredModel::update() const
 {
-  AbstractRawItemDataModel * itemModel = qobject_cast<AbstractRawItemDataModel *>(sourceModel());
-  if (itemModel)
-    itemModel->update();
+  AbstractRawItemDataModel * model = qobject_cast<AbstractRawItemDataModel *>(sourceModel());
+  if (model)
+    model->update();
 }
 
-void RawItemFilteredModel::onDataAboutToBeUpdated()
+
+RawSourceFilterItemModel::RawSourceFilterItemModel(const GeneralSettings * const generalSettings, const ModelData * const modelData, int flags, QObject * parent) :
+  RawItemFilteredModel(new RawSourceItemModel(generalSettings, modelData, parent), flags, parent)
 {
-  emit dataAboutToBeUpdated();
 }
 
-void RawItemFilteredModel::onDataUpdateComplete()
+
+RawSwitchFilterItemModel::RawSwitchFilterItemModel(const GeneralSettings * const generalSettings, const ModelData * const modelData, int context, QObject * parent) :
+  RawItemFilteredModel(new RawSwitchItemModel(generalSettings, modelData, parent), context, parent)
 {
-  emit dataUpdateComplete();
 }

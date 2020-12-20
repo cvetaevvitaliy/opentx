@@ -51,9 +51,8 @@ void preModelLoad()
   if (pulsesStarted()) {
     pausePulses();
   }
-  pauseMixerCalculations();
 
-  stopTrainer();
+  pauseMixerCalculations();
 }
 
 void postRadioSettingsLoad()

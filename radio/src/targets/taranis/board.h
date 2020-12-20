@@ -27,9 +27,6 @@
 #include "board_common.h"
 #include "hal.h"
 
-#if defined(RADIO_TX12)
- #define  NAVIGATION_X7_TX12
-#endif
 
 #if defined(ROTARY_ENCODER_NAVIGATION)
 // Rotary Encoder driver
@@ -242,26 +239,6 @@ enum EnumKeys
   KEY_PAGE,
 #endif
 
-#if defined(KEYS_GPIO_REG_PAGEUP)
-  KEY_PAGEUP,
-#endif
-
-#if defined(KEYS_GPIO_REG_PAGEDN)
-  KEY_PAGEDN,
-#endif
-
-#if defined(KEYS_GPIO_REG_SYS)
-  KEY_SYS,
-#endif
-
-#if defined(KEYS_GPIO_REG_MDL)
-  KEY_MODEL,
-#endif
-
-#if defined(KEYS_GPIO_REG_TELE)
-  KEY_TELE,
-#endif
-
 #if defined(KEYS_GPIO_REG_PLUS)
   KEY_PLUS,
   KEY_MINUS,
@@ -331,11 +308,8 @@ enum EnumSwitches
   SW_SG,
   SW_SH
 };
-#if defined(RADIO_TX12)
-  #define IS_3POS(x)                      ((x) != SW_SA && (x) != SW_SD)
-#else
-  #define IS_3POS(x)                      ((x) != SW_SF && (x) != SW_SH)
-#endif
+#define IS_3POS(x)                      ((x) != SW_SF && (x) != SW_SH)
+
 enum EnumSwitchesPositions
 {
   SW_SA0,
@@ -350,7 +324,7 @@ enum EnumSwitchesPositions
   SW_SD0,
   SW_SD1,
   SW_SD2,
-#if defined(PCBX9) || defined(PCBXLITES) || defined(PCBX9LITES) || defined(RADIO_TX12)
+#if defined(PCBX9) || defined(PCBXLITES) || defined(PCBX9LITES)
   SW_SE0,
   SW_SE1,
   SW_SE2,
@@ -365,7 +339,7 @@ enum EnumSwitchesPositions
   SW_SG1,
   SW_SG2,
 #endif
-#if defined(PCBX9D) || defined(PCBX9DP) || defined(PCBX9E) || (defined(PCBX7) && !defined(RADIO_TX12))
+#if defined(PCBX9D) || defined(PCBX9DP) || defined(PCBX9E) || defined(PCBX7)
   SW_SH0,
   SW_SH1,
   SW_SH2,
@@ -437,11 +411,6 @@ enum EnumSwitchesPositions
   #define STORAGE_NUM_SWITCHES          NUM_SWITCHES
   #define DEFAULT_SWITCH_CONFIG         (SWITCH_2POS << 10) + (SWITCH_2POS << 8) + (SWITCH_3POS << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_3POS << 0)
   #define DEFAULT_POTS_CONFIG           (POT_WITHOUT_DETENT << 0) + (POT_WITHOUT_DETENT << 2); // S1 = pot without detent, S2 = pot with detent
-#elif defined(RADIO_TX12)
-  #define NUM_SWITCHES                  8
-  #define STORAGE_NUM_SWITCHES          NUM_SWITCHES
-  #define DEFAULT_SWITCH_CONFIG         (SWITCH_3POS << 10) + (SWITCH_3POS << 8) + (SWITCH_TOGGLE << 6) + (SWITCH_3POS << 4) + (SWITCH_3POS << 2) + (SWITCH_TOGGLE << 0)
-  #define DEFAULT_POTS_CONFIG           (POT_WITH_DETENT << 0) + (POT_WITH_DETENT << 2);
 #elif defined(PCBX7ACCESS)
   #define NUM_SWITCHES                  7
   #define STORAGE_NUM_SWITCHES          8
@@ -691,7 +660,6 @@ void pwrResetHandler();
 void backlightInit();
 void backlightDisable();
 #define BACKLIGHT_DISABLE()             backlightDisable()
-#define BACKLIGHT_FORCED_ON             101
 uint8_t isBacklightEnabled();
 #if !defined(__cplusplus)
   #define backlightEnable(...)
@@ -706,15 +674,9 @@ uint8_t isBacklightEnabled();
 #if !defined(SIMU)
   void usbJoystickUpdate();
 #endif
-#if defined(RADIO_TX12)
-  #define USB_NAME                     "Radiomaster TX12"
-  #define USB_MANUFACTURER             'R', 'M', '_', 'T', 'X', ' ', ' ', ' '  /* 8 bytes */
-  #define USB_PRODUCT                  'R', 'M', ' ', 'T', 'X', '1', '2', ' '  /* 8 Bytes */
-#else
-  #define USB_NAME                     "FrSky Taranis"
-  #define USB_MANUFACTURER             'F', 'r', 'S', 'k', 'y', ' ', ' ', ' '  /* 8 bytes */
-  #define USB_PRODUCT                  'T', 'a', 'r', 'a', 'n', 'i', 's', ' '  /* 8 Bytes */
-#endif
+#define USB_NAME                        "FrSky Taranis"
+#define USB_MANUFACTURER                'F', 'r', 'S', 'k', 'y', ' ', ' ', ' '  /* 8 bytes */
+#define USB_PRODUCT                     'T', 'a', 'r', 'a', 'n', 'i', 's', ' '  /* 8 Bytes */
 
 #if defined(__cplusplus) && !defined(SIMU)
 }
@@ -863,10 +825,6 @@ void bluetoothDisable();
   #define IS_BLUETOOTH_CHIP_PRESENT()     (true)
 #endif
 
-// USB Charger
-void usbChargerInit();
-bool usbChargerLed();
-
 // LED driver
 void ledInit();
 void ledOff();
@@ -889,11 +847,7 @@ void ledBlue();
 #define IS_LCD_RESET_NEEDED()           true
 #define LCD_CONTRAST_MIN                10
 #define LCD_CONTRAST_MAX                30
-#if defined(RADIO_TX12)
-  #define LCD_CONTRAST_DEFAULT          21
-#else
-  #define LCD_CONTRAST_DEFAULT          15
-#endif
+#define LCD_CONTRAST_DEFAULT            15
 #endif
 
 #if defined(PCBX9D) || defined(PCBX9E) || (defined(PCBX9DP) && PCBREV < 2019)

@@ -76,7 +76,7 @@ class MultiFirmwareInformation {
 
     bool isMultiExternalFirmware() const
     {
-      return ((telemetryInversion == true || boardType == FIRMWARE_MULTI_STM ) && optibootSupport == true && bootloaderCheck == true && telemetryType == FIRMWARE_MULTI_TELEM_MULTI_TELEMETRY);
+      return (telemetryInversion == true && optibootSupport == true && bootloaderCheck == true && telemetryType == FIRMWARE_MULTI_TELEM_MULTI_TELEMETRY);
     }
 
     const char * readMultiFirmwareInformation(const char * filename);
@@ -101,11 +101,6 @@ class MultiFirmwareInformation {
     const char * readV2Signature(const char * buffer);
 };
 
-enum MultiModuleType {
-  MULTI_TYPE_MULTIMODULE = 0,
-  MULTI_TYPE_ELRS,
-};
-
-bool multiFlashFirmware(uint8_t module, const char * filename, MultiModuleType type);
+bool multiFlashFirmware(uint8_t module, const char * filename);
 
 #endif //OPENTX_MULTI_FIRMWARE_H

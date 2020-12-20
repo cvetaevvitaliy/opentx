@@ -103,7 +103,6 @@ class GeneralSettings {
     bool      disableRssiPoweroffAlarm;
     unsigned int       usbMode;
     unsigned int       jackMode;
-    bool      sportPower;
     BeeperMode hapticMode;
     unsigned int   stickMode; // TODO enum
     int       timezone;

@@ -24,8 +24,8 @@
 #include "modeledit.h"
 #include "radiodata.h"
 
-class CommonItemModels;
-class RawItemFilteredModel;
+class RawSwitchFilterItemModel;
+class RawSourceFilterItemModel;
 class TimerEdit;
 
 constexpr char MIMETYPE_LOGICAL_SWITCH[] = "application/x-companion-logical-switch";
@@ -35,12 +35,13 @@ class LogicalSwitchesPanel : public ModelPanel
     Q_OBJECT
 
   public:
-    LogicalSwitchesPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels);
+    LogicalSwitchesPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware);
     virtual ~LogicalSwitchesPanel();
 
     virtual void update();
 
   private slots:
+    void updateDataModels();
     void onFunctionChanged();
     void onV1Changed(int value);
     void onV2Changed(int value);
@@ -60,8 +61,6 @@ class LogicalSwitchesPanel : public ModelPanel
     void cmInsert();
     void cmClear(bool prompt = true);
     void cmClearAll();
-    void onModelDataAboutToBeUpdated();
-    void onModelDataUpdateComplete();
 
   private:
     QComboBox * cbFunction[CPN_MAX_LOGICAL_SWITCHES];
@@ -74,11 +73,11 @@ class LogicalSwitchesPanel : public ModelPanel
     QDoubleSpinBox * dsbDelay[CPN_MAX_LOGICAL_SWITCHES];
     QComboBox * cbSource1[CPN_MAX_LOGICAL_SWITCHES];
     QComboBox * cbSource2[CPN_MAX_LOGICAL_SWITCHES];
-    CommonItemModels * commonItemModels;
-    RawItemFilteredModel * rawSwitchFilteredModel;
-    RawItemFilteredModel * rawSourceFilteredModel;
+    RawSwitchFilterItemModel * rawSwitchItemModel;
+    RawSourceFilterItemModel * rawSourceItemModel;
     int selectedIndex;
     void populateFunctionCB(QComboBox *b);
+    void populateAndSwitchCB(QComboBox *b);
     void updateTimerParam(QDoubleSpinBox *sb, int timer, double minimum=0);
     int lsCapability;
     int lsCapabilityExt;
@@ -87,8 +86,6 @@ class LogicalSwitchesPanel : public ModelPanel
     bool insertAllowed() const;
     bool moveDownAllowed() const;
     bool moveUpAllowed() const;
-    int modelsUpdateCnt;
-    void updateItemModels();
 };
 
 #endif // _LOGICALSWITCHES_H_

@@ -26,9 +26,6 @@
 
 #include <QtCore>
 
-class CommonItemModels;
-class RawItemFilteredModel;
-
 constexpr char MIMETYPE_CHANNEL[] = "application/x-companion-channel";
 
 class GVarGroup;
@@ -52,13 +49,13 @@ class LimitsGroup
     double displayStep;
 };
 
-class ChannelsPanel : public ModelPanel
+class Channels : public ModelPanel
 {
     Q_OBJECT
 
   public:
-    ChannelsPanel(QWidget * parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels);
-    ~ChannelsPanel();
+    Channels(QWidget * parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware);
+    ~Channels();
 
   public slots:
     void refreshExtendedLimits();
@@ -81,8 +78,6 @@ class ChannelsPanel : public ModelPanel
     void cmClear(bool prompt = true);
     void cmClearAll();
     void onCustomContextMenuRequested(QPoint pos);
-    void onModelDataAboutToBeUpdated();
-    void onModelDataUpdateComplete();
 
   private:
     bool hasClipboardData(QByteArray * data = nullptr) const;
@@ -100,9 +95,6 @@ class ChannelsPanel : public ModelPanel
     QCheckBox *symlimitsChk[CPN_MAX_CHNOUT];
     int selectedIndex;
     int chnCapability;
-    CommonItemModels * commonItemModels;
-    RawItemFilteredModel *curveFilteredModel;
-    void updateItemModels();
 };
 
 #endif // _CHANNELS_H_

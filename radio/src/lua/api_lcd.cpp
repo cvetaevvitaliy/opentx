@@ -71,8 +71,7 @@ Reset the backlight timeout
 */
 static int luaLcdResetBacklightTimeout(lua_State * L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   resetBacklightTimeout();
   return 0;
 }
@@ -96,8 +95,7 @@ bottom line is 63. Drawing on an existing black pixel produces white pixel (TODO
 */
 static int luaLcdDrawPoint(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   LcdFlags att = luaL_optunsigned(L, 3, 0);
@@ -125,8 +123,7 @@ whole line will not be drawn (starting from OpenTX 2.1.5)
 */
 static int luaLcdDrawLine(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   coord_t x1 = luaL_checkunsigned(L, 1);
   coord_t y1 = luaL_checkunsigned(L, 2);
   coord_t x2 = luaL_checkunsigned(L, 3);
@@ -231,8 +228,7 @@ See the [Appendix](../appendix/fonts.md) for available characters in each font s
 */
 static int luaLcdDrawText(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   const char * s = luaL_checkstring(L, 3);
@@ -263,8 +259,7 @@ Display a value formatted as time at (x,y)
 */
 static int luaLcdDrawTimer(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int seconds = luaL_checkinteger(L, 3);
@@ -298,8 +293,7 @@ Display a number at (x,y)
 */
 static int luaLcdDrawNumber(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int val = luaL_checkinteger(L, 3);
@@ -327,8 +321,7 @@ See getValue()
 */
 static int luaLcdDrawChannel(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int channel = -1;
@@ -365,8 +358,7 @@ displays negated switch
 */
 static int luaLcdDrawSwitch(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int s = luaL_checkinteger(L, 3);
@@ -390,8 +382,7 @@ Displays the name of the corresponding input as defined by the source at (x,y)
 */
 static int luaLcdDrawSource(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int s = luaL_checkinteger(L, 3);
@@ -541,8 +532,7 @@ Omitting scale draws image in 1:1 scale and is faster than specifying 100 for sc
 */
 static int luaLcdDrawBitmap(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   const BitmapBuffer * b = checkBitmap(L, 1);
 
   if (b) {
@@ -574,8 +564,7 @@ Draw a bitmap at (x,y)
 */
 static int luaLcdDrawPixmap(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   const char * filename = luaL_checkstring(L, 3);
@@ -608,8 +597,7 @@ Draw a rectangle from top left corner (x,y) of specified width and height
 */
 static int luaLcdDrawRectangle(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int w = luaL_checkinteger(L, 3);
@@ -641,8 +629,7 @@ Draw a solid rectangle from top left corner (x,y) of specified width and height
 */
 static int luaLcdDrawFilledRectangle(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int w = luaL_checkinteger(L, 3);
@@ -674,8 +661,7 @@ Draw a simple gauge that is filled based upon fill value
 */
 static int luaLcdDrawGauge(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int w = luaL_checkinteger(L, 3);
@@ -713,8 +699,7 @@ the right side of title bar. (i.e. idx=2, cnt=5, display `2/5`)
 */
 static int luaLcdDrawScreenTitle(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   const char * str = luaL_checkstring(L, 1);
   int idx = luaL_checkinteger(L, 2);
   int cnt = luaL_checkinteger(L, 3);
@@ -754,8 +739,7 @@ Draw a combo box
 */
 static int luaLcdDrawCombobox(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
   int w = luaL_checkinteger(L, 3);
@@ -809,6 +793,7 @@ static int luaLcdDrawCombobox(lua_State *L)
 Set a color for specific area
 
 @param area (unsigned number) specific screen area in the list bellow
+ * `CUSTOM_COLOR`
  * `TEXT_COLOR`
  * `TEXT_BGCOLOR`
  * `TEXT_INVERTED_COLOR`
@@ -822,22 +807,18 @@ Set a color for specific area
  * `ALARM_COLOR`
  * `WARNING_COLOR`
  * `TEXT_DISABLE_COLOR`
+ * `HEADER_COLOR`
  * `CURVE_AXIS_COLOR`
- * `CURVE_COLOR`
  * `CURVE_CURSOR_COLOR`
  * `TITLE_BGCOLOR`
  * `TRIM_BGCOLOR`
  * `TRIM_SHADOW_COLOR`
+ * `MAINVIEW_PANES_COLOR`
+ * `MAINVIEW_GRAPHICS_COLOR`
  * `HEADER_BGCOLOR`
  * `HEADER_ICON_BGCOLOR`
  * `HEADER_CURRENT_BGCOLOR`
- * `MAINVIEW_PANES_COLOR`
- * `MAINVIEW_GRAPHICS_COLOR`
  * `OVERLAY_COLOR`
- * `BARGRAPH1_COLOR`
- * `BARGRAPH2_COLOR`
- * `BARGRAPH_BGCOLOR`
- * `CUSTOM_COLOR`
 
 @param color (number) color in 5/6/5 rgb format. The following prefined colors are available
  * `WHITE`
@@ -850,38 +831,17 @@ Set a color for specific area
  * `RED`
  * `DARKRED`
 
-@notice Only available on Colorlcd radios
+@notice Only available on Horus
 
 @status current Introduced in 2.2.0
 */
 static int luaLcdSetColor(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   unsigned int index = luaL_checkunsigned(L, 1) >> 16;
   unsigned int color = luaL_checkunsigned(L, 2);
   lcdColorTable[index] = color;
   return 0;
-}
-
-/*luadoc
-@function lcd.getColor(area)
-
-Get the color for specific area : see lcd.setColor for area list
-
-@notice Only available on Colorlcd radios
-
-@status current Introduced in 2.3.11
-*/
-
-static int luaLcdGetColor(lua_State *L)
-{
-  if (!luaLcdAllowed)
-    return 0;
-
-  unsigned int index = luaL_checkunsigned(L, 1) >> 16;
-  lua_pushunsigned(L, lcdColorTable[index]);
-  return 1;
 }
 
 /*luadoc
@@ -897,14 +857,13 @@ Returns a 5/6/5 rgb color code, that can be used with lcd.setColor
 
 @retval number (integer) rgb color expressed in 5/6/5 format
 
-@notice Only available on Colorlcd radios
+@notice Only available on Horus
 
 @status current Introduced in 2.2.0
 */
 static int luaRGB(lua_State *L)
 {
-  if (!luaLcdAllowed)
-    return 0;
+  if (!luaLcdAllowed) return 0;
   int r = luaL_checkinteger(L, 1);
   int g = luaL_checkinteger(L, 2);
   int b = luaL_checkinteger(L, 3);
@@ -931,7 +890,6 @@ const luaL_Reg lcdLib[] = {
 #if defined(COLORLCD)
   { "drawBitmap", luaLcdDrawBitmap },
   { "setColor", luaLcdSetColor },
-  { "getColor", luaLcdGetColor },
   { "RGB", luaRGB },
 #else
   { "getLastPos", luaLcdGetLastPos },

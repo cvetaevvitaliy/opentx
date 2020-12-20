@@ -25,7 +25,6 @@
 #include "genericpanel.h"
 
 class RadioData;
-class CommonItemModels;
 
 namespace Ui {
   class ModelEdit;
@@ -63,7 +62,6 @@ class ModelEdit : public QDialog
     RadioData & radioData;
     Firmware * firmware;
     QVector<GenericPanel *> panels;
-    CommonItemModels * commonItemModels;
 
     void addTab(GenericPanel *panel, QString text);
     void launchSimulation();

@@ -26,15 +26,12 @@
 #include "mixerdialog.h"
 #include "modelprinter.h"
 
-class CommonItemModels;
-class RawItemFilteredModel;
-
 class MixesPanel : public ModelPanel
 {
     Q_OBJECT
 
   public:
-    MixesPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels);
+    MixesPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware);
     virtual ~MixesPanel();
 
     virtual void update();
@@ -53,6 +50,7 @@ class MixesPanel : public ModelPanel
     void moveMixDown();
     void mixerHighlight();
 
+
     void mixerlistWidget_customContextMenuRequested(QPoint pos);
     void mixerlistWidget_doubleClicked(QModelIndex index);
     void mixerlistWidget_KeyPress(QKeyEvent *event);
@@ -60,18 +58,11 @@ class MixesPanel : public ModelPanel
     void mimeMixerDropped(int index, const QMimeData *data, Qt::DropAction action);
     void pasteMixerMimeData(const QMimeData * mimeData, int destIdx);
 
-    void onModelDataAboutToBeUpdated();
-    void onModelDataUpdateComplete();
-
   private:
     MixersListWidget * mixersListWidget;
     bool mixInserted;
     unsigned int highlightedSource;
     ModelPrinter modelPrinter;
-    CommonItemModels * commonItemModels;
-    RawItemFilteredModel *rawSourceFilteredModel;
-    RawItemFilteredModel *rawSwitchFilteredModel;
-    RawItemFilteredModel *curveFilteredModel;
 
     int getMixerIndex(unsigned int dch);
     bool gm_insertMix(int idx);

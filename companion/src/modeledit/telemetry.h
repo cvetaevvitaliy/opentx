@@ -27,8 +27,7 @@
 constexpr char MIMETYPE_TELE_SENSOR[] = "application/x-companion-tele-sensor";
 
 class AutoComboBox;
-class CommonItemModels;
-class RawItemFilteredModel;
+class RawSourceFilterItemModel;
 class TimerEdit;
 
 namespace Ui {
@@ -42,7 +41,7 @@ class TelemetryCustomScreen: public ModelPanel
     Q_OBJECT
 
   public:
-    TelemetryCustomScreen(QWidget *parent, ModelData & model, FrSkyScreenData & screen, GeneralSettings & generalSettings, Firmware * firmware, RawItemFilteredModel * rawSourceModel);
+    TelemetryCustomScreen(QWidget *parent, ModelData & model, FrSkyScreenData & screen, GeneralSettings & generalSettings, Firmware * firmware, RawSourceFilterItemModel * srcModel);
     ~TelemetryCustomScreen();
     void update();
 
@@ -54,8 +53,6 @@ class TelemetryCustomScreen: public ModelPanel
     void barMinChanged(double value);
     void barMaxChanged(double value);
     void barTimeChanged();
-    void onModelDataAboutToBeUpdated();
-    void onModelDataUpdateComplete();
 
   private:
     void updateBar(int line);
@@ -125,7 +122,7 @@ class TelemetryPanel : public ModelPanel
     Q_OBJECT
 
   public:
-    TelemetryPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware, CommonItemModels * commonItemModels);
+    TelemetryPanel(QWidget *parent, ModelData & model, GeneralSettings & generalSettings, Firmware * firmware);
     virtual ~TelemetryPanel();
     virtual void update();
 
@@ -151,15 +148,12 @@ class TelemetryPanel : public ModelPanel
     void on_deleteSensor(int index);
     void on_moveUpSensor(int index);
     void on_moveDownSensor(int index);
-    void on_dataModifiedSensor();
 
   private:
     Ui::Telemetry *ui;
     TelemetryCustomScreen * telemetryCustomScreens[4];
     TelemetrySensorPanel * sensorPanels[CPN_MAX_SENSORS];
     int sensorCapability;
-    CommonItemModels * commonItemModels;
-    RawItemFilteredModel * rawSourceFilteredModel;
 
     void setup();
     void telBarUpdate();
@@ -167,7 +161,6 @@ class TelemetryPanel : public ModelPanel
     void populateCurrentSource();
     void populateVarioSource();
     void swapData(int idx1, int idx2);
-    void updateItemModels();
 };
 
 #endif // _TELEMETRY_H_

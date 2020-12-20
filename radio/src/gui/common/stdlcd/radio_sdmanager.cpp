@@ -224,16 +224,12 @@ void onSdManagerMenu(const char * result)
 #if defined(INTERNAL_MODULE_MULTI)
   else if (result == STR_FLASH_INTERNAL_MULTI) {
     getSelectionFullPath(lfn);
-    multiFlashFirmware(INTERNAL_MODULE, lfn, MULTI_TYPE_MULTIMODULE);
+    multiFlashFirmware(INTERNAL_MODULE, lfn);
   }
 #endif
   else if (result == STR_FLASH_EXTERNAL_MULTI) {
     getSelectionFullPath(lfn);
-    multiFlashFirmware(EXTERNAL_MODULE, lfn, MULTI_TYPE_MULTIMODULE);
-  }
-  else if (result == STR_FLASH_EXTERNAL_ELRS) {
-    getSelectionFullPath(lfn);
-    multiFlashFirmware(EXTERNAL_MODULE, lfn, MULTI_TYPE_ELRS);
+    multiFlashFirmware(EXTERNAL_MODULE, lfn);
   }
 #endif
 #if defined(BLUETOOTH)
@@ -402,12 +398,6 @@ void menuRadioSdManager(event_t _event)
 #endif
               POPUP_MENU_ADD_ITEM(STR_FLASH_EXTERNAL_MULTI);
             }
-          }
-
-          if (!READ_ONLY() && !strcasecmp(ext, ELRS_FIRMWARE_EXT)) {
-            TCHAR lfn[_MAX_LFN + 1];
-            getSelectionFullPath(lfn);
-            POPUP_MENU_ADD_ITEM(STR_FLASH_EXTERNAL_ELRS);
           }
 #endif
 #if defined(PCBTARANIS)

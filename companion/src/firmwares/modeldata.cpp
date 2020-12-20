@@ -723,14 +723,10 @@ int ModelData::updateReference()
       updateAssignFunc(cfd);
       if (!cfd->isEmpty()) {
         updateSwitchRef(cfd->swtch);
-        if (cfd->func == FuncVolume || cfd->func == FuncBacklight || cfd->func == FuncPlayValue ||
-            (cfd->func >= FuncAdjustGV1 && cfd->func <= FuncAdjustGVLast && (cfd->adjustMode == FUNC_ADJUST_GVAR_GVAR || cfd->adjustMode == FUNC_ADJUST_GVAR_SOURCE))) {
+        if (cfd->func == FuncVolume || cfd->func == FuncBacklight || cfd->func == FuncPlayValue || (cfd->func >= FuncAdjustGV1 && cfd->func <= FuncAdjustGVLast && (cfd->adjustMode == FUNC_ADJUST_GVAR_GVAR || cfd->adjustMode == FUNC_ADJUST_GVAR_SOURCE))) {
           updateSourceIntRef(cfd->param);
           if (cfd->param == 0)
             cfd->clear();
-        }
-        else if (cfd->func == FuncReset) {
-          updateResetParam(cfd);
         }
       }
     }
@@ -851,7 +847,7 @@ void ModelData::updateTypeIndexRef(R & curRef, const T type, const int idxAdj, c
         newRef.clear();
       else {
         newRef.type = (T)defType;
-        newRef.index = defIndex;
+        newRef.index = defIndex + idxAdj;
       }
       break;
     case REF_UPD_ACT_SHIFT:
@@ -908,7 +904,7 @@ void ModelData::updateTypeValueRef(R & curRef, const T type, const int idxAdj, c
         newRef.clear();
       else {
         newRef.type = (T)defType;
-        newRef.value = defValue;
+        newRef.value = defValue + idxAdj;
       }
       break;
     case REF_UPD_ACT_SHIFT:
@@ -976,7 +972,7 @@ void ModelData::updateAssignFunc(CustomFunctionData * cfd)
 {
   const int invalidateRef = -1;
   int newRef = (int)cfd->func;
-  int idxAdj = 0;
+  int idxAdj;
 
   switch (updRefInfo.type)
   {
@@ -993,7 +989,7 @@ void ModelData::updateAssignFunc(CustomFunctionData * cfd)
     case REF_UPD_TYPE_TIMER:
       if (cfd->func < FuncSetTimer1 || cfd->func > FuncSetTimer3) //  TODO refactor to FuncSetTimerLast
         return;
-      idxAdj = FuncSetTimer1 - 2;   //  reverse earlier offset required for rawsource
+      idxAdj = FuncSetTimer1 - 2;   //  reverse earlier offset requiured for rawsource
       break;
     default:
       return;
@@ -1377,65 +1373,4 @@ void ModelData::sortMixes()
   }
 
   memcpy(&mixData[0], &sortedMixData[0], CPN_MAX_MIXERS * sizeof(MixData));
-}
-
-void ModelData::updateResetParam(CustomFunctionData * cfd)
-{
-
-  if (cfd->func != FuncReset)
-    return;
-
-  const int invalidateRef = -1;
-  int newRef = cfd->param;
-  int idxAdj = 0;
-  Firmware *firmware = getCurrentFirmware();
-
-  switch (updRefInfo.type)
-  {
-    case REF_UPD_TYPE_SENSOR:
-      idxAdj = 5/*3 Timers + Flight + Telemetery*/ + firmware->getCapability(RotaryEncoders);
-      if (cfd->param < idxAdj || cfd->param > (idxAdj + firmware->getCapability(Sensors)))
-        return;
-      break;
-    default:
-      return;
-  }
-
-  switch (updRefInfo.action)
-  {
-    case REF_UPD_ACT_CLEAR:
-      if (newRef != (updRefInfo.index1 + idxAdj))
-        return;
-      newRef = invalidateRef;
-      break;
-    case REF_UPD_ACT_SHIFT:
-      if (newRef < (updRefInfo.index1 + idxAdj))
-        return;
-
-      newRef += updRefInfo.shift;
-
-      if (newRef < (updRefInfo.index1 + idxAdj) || newRef > (updRefInfo.maxindex + idxAdj))
-        newRef = invalidateRef;
-      break;
-    case REF_UPD_ACT_SWAP:
-      if (newRef == updRefInfo.index1 + idxAdj)
-        newRef = updRefInfo.index2 + idxAdj;
-      else if (newRef == updRefInfo.index2 + idxAdj)
-        newRef = updRefInfo.index1 + idxAdj;
-      break;
-    default:
-      qDebug() << "Error - unhandled action:" << updRefInfo.action;
-      return;
-  }
-
-  if (newRef == invalidateRef) {
-    cfd->clear();
-    //qDebug() << "Function cleared";
-    updRefInfo.updcnt++;
-  }
-  else if (cfd->param != newRef) {
-    //qDebug() << "Updated reference:" << cfd->param << " -> " << newRef;
-    cfd->param = newRef;
-    updRefInfo.updcnt++;
-  }
 }

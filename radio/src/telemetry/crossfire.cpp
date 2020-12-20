@@ -178,9 +178,10 @@ void processCrossfireTelemetryFrame()
     case FLIGHT_MODE_ID:
     {
       const CrossfireSensor & sensor = crossfireSensors[FLIGHT_MODE_INDEX];
-      auto textLength = min<int>(16, telemetryRxBuffer[1]);
-      telemetryRxBuffer[textLength] = '\0';
-      setTelemetryText(PROTOCOL_TELEMETRY_CROSSFIRE, sensor.id, 0, sensor.subId, (const char *)telemetryRxBuffer + 3);
+      for (int i=0; i<min<int>(16, telemetryRxBuffer[1]-2); i+=4) {
+        uint32_t value = *((uint32_t *)&telemetryRxBuffer[3+i]);
+        setTelemetryValue(PROTOCOL_TELEMETRY_CROSSFIRE, sensor.id, 0, sensor.subId, value, sensor.unit, i);
+      }
       break;
     }
 

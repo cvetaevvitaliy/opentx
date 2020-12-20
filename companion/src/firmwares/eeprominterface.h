@@ -151,7 +151,6 @@ enum Capability {
   DangerousFunctions,
   HasModelCategories,
   HasSwitchableJack,
-  HasSportConnector,
   PwrButtonPress,
   Sensors
 };

@@ -35,7 +35,6 @@ extern uint8_t currentTrainerMode;
 
 void checkTrainerSignalWarning();
 void checkTrainerSettings();
-void stopTrainer();
 void forceResetTrainerSettings();
 
 // Needs to be inlined to avoid slow function calls in ISR routines
